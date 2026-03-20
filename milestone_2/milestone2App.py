@@ -13,7 +13,7 @@ from preprocessing import (
 )
 
 # ── Page config ────────────────────────────────────────────────
-st.set_page_config(page_title="Fitness Data Pro – M2", page_icon="💪", layout="wide")
+st.set_page_config(page_title="FitPulse – M2", page_icon="💪", layout="wide")
 
 st.markdown("""
 <style>

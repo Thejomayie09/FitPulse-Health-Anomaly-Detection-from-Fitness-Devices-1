@@ -14,7 +14,7 @@ from preprocessing import (
 )
 
 # ── Page config ─────────────────────────────────────────────────
-st.set_page_config(page_title="Fitness Data Pro", page_icon="💪", layout="wide")
+st.set_page_config(page_title="FitPulse", page_icon="💪", layout="wide")
 
 # ── Shared CSS ──────────────────────────────────────────────────
 st.markdown("""
@@ -265,26 +265,143 @@ if "Milestone 1" in milestone:
             if st.session_state.processed_df is not None:
                 processed_df = st.session_state.processed_df
                 st.subheader("🕵️ Outlier Detector")
+                tip("Select any numeric column to check if it has unusual values. Outliers are values that are much higher or lower than the rest.")
                 num_cols = processed_df.select_dtypes(include=[np.number]).columns.tolist()
                 if num_cols:
                     col_to_plot = st.selectbox("Select a metric to check for unusual values:", num_cols)
+
+                    # ── Summary stats strip ──────────────────────
+                    col_data = processed_df[col_to_plot].dropna()
+                    Q1  = col_data.quantile(0.25)
+                    Q3  = col_data.quantile(0.75)
+                    IQR = Q3 - Q1
+                    outliers = col_data[(col_data < Q1 - 1.5*IQR) | (col_data > Q3 + 1.5*IQR)]
+                    s1,s2,s3,s4,s5 = st.columns(5)
+                    s1.metric("Min",      f"{col_data.min():,.1f}")
+                    s2.metric("Max",      f"{col_data.max():,.1f}")
+                    s3.metric("Mean",     f"{col_data.mean():,.1f}")
+                    s4.metric("Median",   f"{col_data.median():,.1f}")
+                    s5.metric("Outliers", len(outliers),
+                              delta=f"{len(outliers)/len(col_data)*100:.1f}% of data",
+                              delta_color="inverse")
+
+                    st.markdown("")
                     v1, v2 = st.columns(2)
                     with v1:
-                        fig_box = px.box(processed_df, y=col_to_plot,
-                                         title=f"Range View ({col_to_plot})",
-                                         points="all", color_discrete_sequence=['#a78bfa'])
-                        st.plotly_chart(T(fig_box), use_container_width=True)
-                        st.info("**Box Plot:** The box = normal data range. Dots outside the whiskers = outliers.")
+                        st.markdown(f"**📦 Box Plot — {col_to_plot}**")
+                        fig_box = px.box(
+                            processed_df, y=col_to_plot,
+                            points="all",
+                            color_discrete_sequence=["#a78bfa"],
+                            labels={col_to_plot: col_to_plot},
+                        )
+                        fig_box.update_traces(
+                            marker=dict(size=4, opacity=0.5, color="#38bdf8"),
+                            line=dict(color="#a78bfa"),
+                            fillcolor="rgba(167,139,250,0.3)",
+                            boxmean=True,
+                        )
+                        fig_box.update_layout(
+                            **{**PT, "height": 420},
+                            title=dict(text=f"Range View — {col_to_plot}", font=dict(color="#a78bfa", size=13)),
+                            yaxis_title=col_to_plot,
+                            xaxis=dict(showticklabels=False),
+                        )
+                        fig_box.update_yaxes(gridcolor="#1e3a5f", zerolinecolor="#1e3a5f")
+                        st.plotly_chart(fig_box, use_container_width=True)
+
+
                     with v2:
-                        fig_hist = px.histogram(processed_df, x=col_to_plot,
-                                                title="Frequency View",
-                                                color_discrete_sequence=['#6366f1'])
-                        st.plotly_chart(T(fig_hist), use_container_width=True)
-                        st.info(f"Shows how often different values of **{col_to_plot}** appear. Tall bars = common values.")
+                        st.markdown(f"**📊 Histogram — {col_to_plot}**")
+                        # Colour bars: outliers in red, normal in purple
+                        lower_bound = Q1 - 1.5 * IQR
+                        upper_bound = Q3 + 1.5 * IQR
+                        fig_hist = px.histogram(
+                            processed_df, x=col_to_plot,
+                            nbins=40,
+                            color_discrete_sequence=["#6366f1"],
+                            labels={col_to_plot: col_to_plot, "count": "Number of Records"},
+                        )
+                        fig_hist.update_traces(
+                            marker_color="#6366f1",
+                            marker_line_color="#a78bfa",
+                            marker_line_width=1,
+                            opacity=0.85,
+                        )
+                        # Outlier zone shading
+                        if len(outliers) > 0:
+                            fig_hist.add_vrect(
+                                x0=col_data.min(), x1=lower_bound,
+                                fillcolor="rgba(239,68,68,0.12)",
+                                layer="below", line_width=0,
+                                annotation_text="Outlier zone",
+                                annotation_position="top left",
+                                annotation_font_color="#ef4444",
+                                annotation_font_size=10,
+                            )
+                            fig_hist.add_vrect(
+                                x0=upper_bound, x1=col_data.max(),
+                                fillcolor="rgba(239,68,68,0.12)",
+                                layer="below", line_width=0,
+                                annotation_text="Outlier zone",
+                                annotation_position="top right",
+                                annotation_font_color="#ef4444",
+                                annotation_font_size=10,
+                            )
+                        # Mean and Median lines — positioned at different heights to avoid overlap
+                        fig_hist.add_vline(x=col_data.mean(), line_dash="dash",
+                                           line_color="#f59e0b", line_width=2)
+                        fig_hist.add_annotation(
+                            x=col_data.mean(), y=1, yref="paper",
+                            text=f"Mean: {col_data.mean():,.1f}",
+                            showarrow=False, font=dict(color="#f59e0b", size=11),
+                            xanchor="left", yanchor="top",
+                            bgcolor="rgba(13,27,42,0.7)", bordercolor="#f59e0b",
+                        )
+                        fig_hist.add_vline(x=col_data.median(), line_dash="dot",
+                                           line_color="#10b981", line_width=2)
+                        fig_hist.add_annotation(
+                            x=col_data.median(), y=0.88, yref="paper",
+                            text=f"Median: {col_data.median():,.1f}",
+                            showarrow=False, font=dict(color="#10b981", size=11),
+                            xanchor="left", yanchor="top",
+                            bgcolor="rgba(13,27,42,0.7)", bordercolor="#10b981",
+                        )
+                        fig_hist.update_layout(
+                            **{**PT, "height": 420},
+                            title=dict(text=f"Frequency Distribution — {col_to_plot}", font=dict(color="#a78bfa", size=13)),
+                            xaxis_title=col_to_plot,
+                            yaxis_title="Number of Records",
+                            bargap=0.03,
+                        )
+                        fig_hist.update_xaxes(gridcolor="#1e3a5f", zerolinecolor="#1e3a5f")
+                        fig_hist.update_yaxes(gridcolor="#1e3a5f", zerolinecolor="#1e3a5f")
+                        st.plotly_chart(fig_hist, use_container_width=True)
+
+                    # ── Outlier table ────────────────────────────
+                    if len(outliers) > 0:
+                        st.markdown("---")
+                        st.markdown(f"### 🚨 Outlier Rows — {len(outliers)} found")
+                        tip(f"These are the actual rows where **{col_to_plot}** has an unusual value. The highlighted column shows the outlier value.")
+                        outlier_rows = processed_df[
+                            (processed_df[col_to_plot] < Q1 - 1.5*IQR) |
+                            (processed_df[col_to_plot] > Q3 + 1.5*IQR)
+                        ].copy()
+                        outlier_rows["⚠️ Outlier Value"] = outlier_rows[col_to_plot]
+                        st.dataframe(outlier_rows, use_container_width=True)
+                        st.markdown(f"""
+                        <div class="info-box">
+                            ⚠️ <strong>What is an outlier?</strong><br>
+                            Any value below <strong>{Q1 - 1.5*IQR:,.1f}</strong> or above <strong>{Q3 + 1.5*IQR:,.1f}</strong>
+                            is considered an outlier for <strong>{col_to_plot}</strong>.<br>
+                            Normal range: <strong>{Q1:,.1f}</strong> (Q1) to <strong>{Q3:,.1f}</strong> (Q3)
+                        </div>""", unsafe_allow_html=True)
+                    else:
+                        st.success(f"✅ No outliers found in **{col_to_plot}** — all values are within the normal range.")
                 else:
                     st.warning("No numeric columns found.")
             else:
-                st.warning("⚠️ Run the Processing tab first to see visualisations.")
+                st.warning("⚠️ Run the **Processing** tab first to see visualisations.")
     else:
         st.markdown("""
             <div style="text-align:center;padding:100px 20px;border:2px dashed #1e3a5f;border-radius:20px;">
