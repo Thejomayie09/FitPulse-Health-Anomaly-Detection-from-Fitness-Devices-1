@@ -755,31 +755,31 @@ else:
 
     # ── SECTION 5: CLUSTERING ─────────────────────────────────
     with st.expander("🔵  Step 5 — User Grouping (Clustering)"):
-        st.markdown("""
-        <div style="background:#162a41;border:1px solid #1e4a6e;border-radius:12px;padding:18px 20px;margin-bottom:12px">
-            <h4 style="color:#a78bfa;margin:0 0 10px 0">🤔 What does a "Group" mean here?</h4>
-            <p style="color:#dce8f5;margin:0 0 10px 0">
-                Clustering reads all the numbers (steps, sleep, calories, heart rate) for every user and
-                automatically puts similar users into the same group — <strong style="color:#38bdf8">without you telling it anything</strong>.
-            </p>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px">
-                <div style="background:#0d1b2a;border-left:3px solid #10b981;border-radius:6px;padding:8px 10px">
-                    <div style="color:#10b981;font-weight:700;font-size:0.85rem">🏃 Active</div>
-                    <div style="color:#a8c8e8;font-size:0.78rem;margin-top:3px">High steps · Low sedentary · Good sleep</div>
-                </div>
-                <div style="background:#0d1b2a;border-left:3px solid #a78bfa;border-radius:6px;padding:8px 10px">
-                    <div style="color:#a78bfa;font-weight:700;font-size:0.85rem">🛋️ Sedentary</div>
-                    <div style="color:#a8c8e8;font-size:0.78rem;margin-top:3px">Low steps · High sedentary · Poor sleep</div>
-                </div>
-                <div style="background:#0d1b2a;border-left:3px solid #38bdf8;border-radius:6px;padding:8px 10px">
-                    <div style="color:#38bdf8;font-weight:700;font-size:0.85rem">🚶 Moderate</div>
-                    <div style="color:#a8c8e8;font-size:0.78rem;margin-top:3px">Average steps · Some active days</div>
-                </div>
-            </div>
-            <p style="color:#6b7a9a;font-size:0.8rem;margin:10px 0 0 0">
-                ⚠️ Group numbers (0,1,2…) are just labels. What matters is the profile chart below.
-            </p>
-        </div>""", unsafe_allow_html=True)
+        # st.markdown("""
+        # <div style="background:#162a41;border:1px solid #1e4a6e;border-radius:12px;padding:18px 20px;margin-bottom:12px">
+        #     <h4 style="color:#a78bfa;margin:0 0 10px 0">🤔 What does a "Group" mean here?</h4>
+        #     <p style="color:#dce8f5;margin:0 0 10px 0">
+        #         Clustering reads all the numbers (steps, sleep, calories, heart rate) for every user and
+        #         automatically puts similar users into the same group — <strong style="color:#38bdf8">without you telling it anything</strong>.
+        #     </p>
+        #     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px">
+        #         <div style="background:#0d1b2a;border-left:3px solid #10b981;border-radius:6px;padding:8px 10px">
+        #             <div style="color:#10b981;font-weight:700;font-size:0.85rem">🏃 Active</div>
+        #             <div style="color:#a8c8e8;font-size:0.78rem;margin-top:3px">High steps · Low sedentary · Good sleep</div>
+        #         </div>
+        #         <div style="background:#0d1b2a;border-left:3px solid #a78bfa;border-radius:6px;padding:8px 10px">
+        #             <div style="color:#a78bfa;font-weight:700;font-size:0.85rem">🛋️ Sedentary</div>
+        #             <div style="color:#a8c8e8;font-size:0.78rem;margin-top:3px">Low steps · High sedentary · Poor sleep</div>
+        #         </div>
+        #         <div style="background:#0d1b2a;border-left:3px solid #38bdf8;border-radius:6px;padding:8px 10px">
+        #             <div style="color:#38bdf8;font-weight:700;font-size:0.85rem">🚶 Moderate</div>
+        #             <div style="color:#a8c8e8;font-size:0.78rem;margin-top:3px">Average steps · Some active days</div>
+        #         </div>
+        #     </div>
+        #     <p style="color:#6b7a9a;font-size:0.8rem;margin:10px 0 0 0">
+        #         ⚠️ Group numbers (0,1,2…) are just labels. What matters is the profile chart below.
+        #     </p>
+        # </div>""", unsafe_allow_html=True)
 
         from sklearn.cluster import KMeans, DBSCAN
 
