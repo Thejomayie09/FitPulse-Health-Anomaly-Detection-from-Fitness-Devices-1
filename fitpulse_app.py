@@ -699,13 +699,29 @@ elif "Milestone 1" in milestone:
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         if 'processed_df' not in st.session_state: st.session_state.processed_df = None
-        m1, m2, m3, m4 = st.columns(4)
+        m1, m2, m3, m4, m5, m6 = st.columns(6)
         with m1: st.metric("Total Rows",    f"{len(df):,}")
         with m2: st.metric("Dimensions",    f"{df.shape[1]} Cols")
         with m3: st.metric("Missing Cells", int(df.isnull().sum().sum()))
         with m4:
             comp = 100 - (df.isnull().sum().sum() / df.size * 100) if df.size > 0 else 0
             st.metric("Completeness", f"{comp:.1f}%")
+        with m5:
+            id_col = next((c for c in df.columns if c.lower() in ['id', 'user_id', 'userid', 'logid']), None)
+            st.metric("Total Users", f"{df[id_col].nunique():,}" if id_col else "Unknown")
+        with m6:
+            date_col = next((c for c in df.columns if 'date' in c.lower() or 'time' in c.lower() or 'day' in c.lower()), None)
+            if id_col and date_col:
+                try:
+                    td = pd.to_datetime(df[date_col], errors="coerce").dropna()
+                    if not td.empty:
+                        avg_days = td.dt.date.groupby(df.loc[td.index, id_col]).nunique().mean()
+                        st.metric("Avg Days/User", f"{avg_days:.1f}" if pd.notna(avg_days) else "Unknown")
+                    else: st.metric("Avg Days/User", "Unknown")
+                except Exception:
+                    st.metric("Avg Days/User", "Unknown")
+            else:
+                st.metric("Avg Days/User", "Unknown")
         tab1, tab2, tab3 = st.tabs(["🔍 Inspection", "⚙️ Processing", "📈 Visualization"])
         with tab1:
             st.subheader("Raw Dataset Preview")
@@ -994,7 +1010,7 @@ elif "Milestone 2" in milestone:
         fig_el.update_traces(marker=dict(size=10,color="#38bdf8",line=dict(color="white",width=1.5))); st.plotly_chart(T(fig_el),use_container_width=True)
         st.markdown("---"); st.markdown("### ⚙️ Clustering Settings")
         cc1,cc2,cc3=st.columns(3)
-        n_k=cc1.slider("KMeans — number of groups (k)",2,min(10,len(feat_scaled)-1),3,key="k"); eps=cc2.slider("DBSCAN — neighbourhood size (eps)",0.3,5.0,2.5,0.1,key="eps"); msamp=cc3.slider("DBSCAN — minimum group size",2,15,3,key="ms")
+        n_k=cc1.slider("KMeans — number of groups (k)",2,min(10,len(feat_scaled)-1),3,key="k"); eps=cc2.slider("DBSCAN — neighbourhood size (eps)",0.3,5.0,2.2,0.1,key="eps"); msamp=cc3.slider("DBSCAN — minimum group size",2,15,2,key="ms")
         km_labels=KMeans(n_clusters=n_k,random_state=42,n_init="auto").fit_predict(feat_scaled); db_labels=DBSCAN(eps=eps,min_samples=msamp).fit_predict(feat_scaled)
         user_df["KMeans_Cluster"]=km_labels; user_df["DBSCAN_Cluster"]=db_labels
         n_db_c=len(set(db_labels))-(1 if -1 in db_labels else 0); n_noise=int((db_labels==-1).sum())
