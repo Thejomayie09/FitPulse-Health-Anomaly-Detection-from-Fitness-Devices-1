@@ -815,6 +815,81 @@ elif "Milestone 1" in milestone:
                         st.markdown(f'<div class="info-box">⚠️ <strong>Outlier range for {col_to_plot}:</strong><br>Any value below <strong>{lower_bound:,.1f}</strong> or above <strong>{upper_bound:,.1f}</strong> is an outlier.<br>Normal range: <strong>{Q1:,.1f}</strong> (Q1) to <strong>{Q3:,.1f}</strong> (Q3)</div>', unsafe_allow_html=True)
                     else:
                         st.success(f"✅ No outliers found in **{col_to_plot}** — all values are within the normal range.")
+
+                    st.markdown("---")
+                    st.subheader("🏋️‍♀️ Workout Time by Gender")
+                    # Check for required columns
+                    has_gender = "Gender" in processed_df.columns
+                    has_workout = "Workout_Type" in processed_df.columns
+                    has_time = "Active_Minutes" in processed_df.columns
+                    
+                    if has_gender and has_workout and has_time:
+                        tip("Average time spent on each workout type, broken down by gender.")
+                        
+                        # Filter out Unknowns and keep only Male/Female
+                        wo_df = processed_df.dropna(subset=["Gender"]).copy()
+                        wo_df["Gender"] = wo_df["Gender"].astype(str).str.strip().str.capitalize()
+                        wo_df = wo_df[wo_df["Gender"].isin(["Male", "Female"])]
+                        
+                        # Group by Gender and Workout_Type
+                        workout_stats = wo_df.groupby(["Workout_Type", "Gender"])["Active_Minutes"].mean().reset_index()
+                        
+                        fig_wo = px.bar(
+                            workout_stats, 
+                            x="Workout_Type", 
+                            y="Active_Minutes", 
+                            color="Gender", 
+                            barmode="group",
+                            title="Average Active Minutes per Workout Type by Gender",
+                            color_discrete_sequence=["#a78bfa", "#38bdf8"],
+                            labels={"Active_Minutes": "Average Time (mins)", "Workout_Type": "Type of Workout"}
+                        )
+                        # Adjust layout for slimmer bars
+                        fig_wo.update_layout(**PT, bargap=0.5, bargroupgap=0.1)
+                        st.plotly_chart(fig_wo, use_container_width=True)
+                    else:
+                        st.info("Requires 'Gender', 'Workout_Type', and 'Active_Minutes' columns to generate this chart.")
+
+                    st.markdown("---")
+                    st.subheader("😰 High Stress Level Analysis")
+                    stress_col = next((c for c in processed_df.columns if "Stress" in c or "stress" in c), None)
+                    if stress_col:
+                        try:
+                            # Safely convert stress column to numeric to filter >= 7
+                            stress_series = pd.to_numeric(processed_df[stress_col], errors='coerce')
+                            high_stress = processed_df[stress_series >= 7].copy()
+                            
+                            if not high_stress.empty:
+                                tip("Preview users experiencing high stress (Level 7 or above) and download the full analysis.")
+                                def get_reason(row):
+                                    r = []
+                                    if "Hours_Slept" in row and pd.notna(row["Hours_Slept"]) and row["Hours_Slept"] < 6: r.append("Low Sleep")
+                                    if "Active_Minutes" in row and pd.notna(row["Active_Minutes"]) and row["Active_Minutes"] > 60: r.append("High Workload")
+                                    if "Heart_Rate (bpm)" in row and pd.notna(row["Heart_Rate (bpm)"]) and row["Heart_Rate (bpm)"] > 90: r.append("Elevated HR")
+                                    if "Mood" in row and pd.notna(row["Mood"]) and row["Mood"] in ["Sad", "Anxious", "Stressed", "Angry"]: r.append(f"Mood: {row['Mood']}")
+                                    return ", ".join(r) if r else "Unknown Factor"
+                                high_stress["Reason for High Stress"] = high_stress.apply(get_reason, axis=1)
+                                
+                                show_cols = [c for c in ["User_ID", "Full Name", "Gender", stress_col, "Hours_Slept", "Active_Minutes", "Reason for High Stress"] if c in high_stress.columns]
+                                if "Reason for High Stress" not in show_cols: show_cols.append("Reason for High Stress")
+                                
+                                # Show preview
+                                st.dataframe(high_stress[show_cols].head(50), use_container_width=True)
+                                
+                                # Download button
+                                csv_data = high_stress[show_cols].to_csv(index=False).encode('utf-8')
+                                st.download_button(
+                                    label="📥 Download High Stress Analysis Report (CSV)",
+                                    data=csv_data,
+                                    file_name="high_stress_analysis.csv",
+                                    mime="text/csv"
+                                )
+                            else:
+                                st.success("No high stress records (>= 7) found in the dataset.")
+                        except Exception as e:
+                            st.warning(f"Could not parse stress levels: {e}")
+                    else:
+                        st.info("Stress level column not found in dataset.")
                 else: st.warning("No numeric columns found.")
             else: st.warning("⚠️ Run the **Processing** tab first to see visualisations.")
     else:
